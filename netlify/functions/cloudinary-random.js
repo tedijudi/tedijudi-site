@@ -1,7 +1,7 @@
 const https = require("https");
 
 /**
- * Cloudinary Search API 호출
+ * Cloudinary Search API 호출 (EXIF 메타데이터 포함)
  */
 function cloudinarySearch({ cloudName, apiKey, apiSecret, folder }) {
   return new Promise((resolve, reject) => {
@@ -11,6 +11,8 @@ function cloudinarySearch({ cloudName, apiKey, apiSecret, folder }) {
       expression: `folder:${folder}/* AND resource_type:image`,
       max_results: 200,
       sort_by: [{ created_at: "desc" }],
+      // ✅ EXIF 메타데이터 요청
+      with_field: ["image_metadata", "context", "tags"]
     });
 
     const options = {
@@ -51,6 +53,43 @@ function cloudinarySearch({ cloudName, apiKey, apiSecret, folder }) {
 }
 
 /**
+ * GPS 좌표를 주소로 변환 (간단 버전)
+ */
+function formatGPS(lat, lon) {
+  if (!lat || !lon) return null;
+  
+  // 실제로는 Reverse Geocoding API 사용 권장
+  // 여기서는 좌표만 표시
+  return `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+}
+
+/**
+ * EXIF 날짜 파싱
+ */
+function parseExifDate(dateStr) {
+  if (!dateStr) return null;
+  
+  try {
+    // EXIF 형식: "2024:01:15 14:30:22"
+    const cleaned = dateStr.replace(/^(\d{4}):(\d{2}):(\d{2})/, "$1-$2-$3");
+    const date = new Date(cleaned);
+    
+    if (isNaN(date)) return null;
+    
+    return date.toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).replace(/\. /g, '.').replace(/\.$/, '');
+    
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Netlify Function Handler
  */
 exports.handler = async function (event, context) {
@@ -64,7 +103,6 @@ exports.handler = async function (event, context) {
     "Access-Control-Allow-Origin": "*",
   };
 
-  // 환경변수 확인
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
     console.error("Missing Cloudinary credentials");
     return {
@@ -104,15 +142,49 @@ exports.handler = async function (event, context) {
       [resources[i], resources[j]] = [resources[j], resources[i]];
     }
 
-    // 최대 20장 선택
     const selected = resources.slice(0, 20);
 
-    const items = selected.map((r, idx) => ({
-      image: r.secure_url,
-      name: `${CLOUDINARY_FOLDER} #${idx + 1}`,
-      meta: r.created_at ? r.created_at.slice(0, 10) : "",
-      desc: r.context?.custom?.caption || "",
-    }));
+    const items = selected.map((r) => {
+      const meta = r.image_metadata || {};
+      
+      // A. 촬영 날짜
+      const photoDate = parseExifDate(meta.DateTimeOriginal || meta.DateTime);
+      
+      // 업로드 날짜 (fallback)
+      const uploadDate = r.created_at ? r.created_at.slice(0, 10).replace(/-/g, '.') : '';
+      
+      // B. 위치 정보
+      let location = null;
+      if (meta.GPSLatitude && meta.GPSLongitude) {
+        location = formatGPS(meta.GPSLatitude, meta.GPSLongitude);
+      }
+      
+      // C. 카메라 정보
+      let camera = null;
+      if (meta.Make || meta.Model) {
+        camera = [meta.Make, meta.Model].filter(Boolean).join(' ');
+        
+        // 추가 정보
+        const details = [];
+        if (meta.FNumber) details.push(`f/${meta.FNumber}`);
+        if (meta.ExposureTime) details.push(`${meta.ExposureTime}s`);
+        if (meta.ISOSpeedRatings) details.push(`ISO ${meta.ISOSpeedRatings}`);
+        
+        if (details.length > 0) {
+          camera += ` · ${details.join(', ')}`;
+        }
+      }
+
+      return {
+        image: r.secure_url,
+        photoDate,        // 촬영 날짜/시간
+        uploadDate,       // 업로드 날짜 (fallback)
+        location,         // GPS 위치
+        camera,           // 카메라 + 촬영 정보
+        width: r.width,
+        height: r.height,
+      };
+    });
 
     return {
       statusCode: 200,
