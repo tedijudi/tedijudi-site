@@ -5,7 +5,6 @@
   <title>tedijudi · Orbit Carousel TODAY PICK</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    /* ===== 공통 레이아웃 ===== */
     body {
       margin: 0;
       background: #4f4f4f;
@@ -39,11 +38,9 @@
       opacity: 0.85;
       user-select: none;
       text-align: center;
-      line-height: 1.4;
       z-index: 10;
     }
 
-    /* ===== 로딩/에러 메시지 ===== */
     .status {
       position: absolute;
       top: 46px;
@@ -55,7 +52,6 @@
       z-index: 10;
     }
 
-    /* ===== 카드 ===== */
     .card {
       position: absolute;
       width: 260px;
@@ -67,13 +63,7 @@
       will-change: transform, opacity;
       backface-visibility: hidden;
       transform-style: preserve-3d;
-      cursor: pointer;
-      user-select: none;
-      transition: box-shadow 0.3s ease;
-    }
-
-    .card:hover {
-      box-shadow: 0 32px 90px rgba(0, 0, 0, 0.5);
+      cursor: grab;
     }
 
     .card.hidden {
@@ -81,485 +71,161 @@
       pointer-events: none;
     }
 
-    /* 카드 위 정보 (가로 텍스트) */
-    .card-info {
+    .label {
       position: absolute;
-      top: -70px;
+      top: -60px;
       left: 50%;
-      transform: translateX(-50%);
-      min-width: 200px;
-      text-align: center;
-      font-size: 10px;
-      color: #555;
-      line-height: 1.5;
-      pointer-events: none;
+      transform: translateX(-50%) rotate(-90deg);
+      font-size: 11px;
+      color: #666;
       white-space: nowrap;
-    }
-
-    .card-info-date {
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 2px;
-    }
-
-    .card-info-detail {
-      font-size: 9px;
-      color: #777;
-    }
-
-    /* ===== 확대 뷰어 (전체화면) ===== */
-    .viewer {
-      position: fixed;
-      inset: 0;
-      opacity: 0;
       pointer-events: none;
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      transition: opacity 0.3s ease;
-    }
-
-    .viewer.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    /* 블러 배경 */
-    .viewer-bg {
-      position: absolute;
-      inset: 0;
-      background-size: cover;
-      background-position: center;
-      filter: blur(60px) brightness(0.7);
-      transform: scale(1.2);
-      transition: opacity 0.3s ease;
-    }
-
-    .viewer-container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 20px;
-      padding: 40px 20px;
-      box-sizing: border-box;
-    }
-
-    /* 이미지 - 카드 뽑는 효과 (1초) */
-    .viewer-image {
-      max-width: 90vw;
-      max-height: 75vh;
-      object-fit: contain;
-      border-radius: 12px;
-      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.8);
-      cursor: pointer;
-      opacity: 0;
-      /* 카드에서 뽑아서 커지는 효과 */
-      transform: scale(0.3) translateY(100px) rotateX(-15deg) rotateZ(-5deg);
-      transition: all 1s cubic-bezier(0.34, 1.2, 0.64, 1);
-    }
-
-    .viewer.active .viewer-image {
-      opacity: 1;
-      transform: scale(1) translateY(0) rotateX(0deg) rotateZ(0deg);
-    }
-
-    /* 정보 패널 */
-    .viewer-info {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      padding: 20px 30px;
-      border-radius: 16px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-      max-width: 600px;
-      text-align: center;
-      opacity: 0;
-      transform: translateY(30px);
-      transition: all 0.6s ease 0.4s;
-    }
-
-    .viewer.active .viewer-info {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .viewer-date {
-      font-size: 15px;
-      font-weight: 700;
-      color: #222;
-      margin-bottom: 8px;
-    }
-
-    .viewer-location {
-      font-size: 13px;
-      color: #555;
-      margin-bottom: 6px;
-    }
-
-    .viewer-camera {
-      font-size: 12px;
-      color: #777;
-    }
-
-    /* 닫기 버튼 */
-    .viewer-close {
-      position: absolute;
-      top: 30px;
-      right: 30px;
-      color: #fff;
-      font-size: 16px;
-      font-weight: 600;
-      opacity: 0.9;
-      cursor: pointer;
-      user-select: none;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 10px 20px;
-      border-radius: 30px;
-      transition: all 0.2s ease;
-    }
-
-    .viewer-close:hover {
-      opacity: 1;
-      background: rgba(0, 0, 0, 0.7);
-      transform: scale(1.05);
-    }
-
-    /* ===== 모바일 튜닝 ===== */
-    @media (max-width: 768px) {
-      body {
-        background: #f5f5f5;
-      }
-
-      .frame {
-        width: 100vw;
-        max-width: none;
-      }
-
-      .hint {
-        top: 10px;
-        font-size: 11px;
-      }
-
-      .status {
-        top: 32px;
-        font-size: 10px;
-      }
-
-      .card {
-        width: 180px;
-        height: 250px;
-        border-radius: 20px;
-        box-shadow: 0 18px 45px rgba(0,0,0,0.3);
-      }
-
-      .card-info {
-        top: -55px;
-        font-size: 9px;
-        min-width: 160px;
-      }
-
-      .card-info-detail {
-        font-size: 8px;
-      }
-
-      .viewer-image {
-        max-width: 95vw;
-        max-height: 70vh;
-      }
-
-      .viewer-info {
-        padding: 16px 20px;
-        max-width: 90vw;
-      }
-
-      .viewer-date {
-        font-size: 13px;
-      }
-
-      .viewer-location {
-        font-size: 11px;
-      }
-
-      .viewer-camera {
-        font-size: 10px;
-      }
-
-      .viewer-close {
-        top: 15px;
-        right: 15px;
-        font-size: 14px;
-        padding: 8px 16px;
-      }
     }
   </style>
 </head>
+
 <body>
   <div class="frame">
-    <div class="hint">
-      마우스를 좌우로 드래그해서 회전 · 카드를 클릭하면 크게 보기<br/>
-      (모바일에서는 손가락으로 슬라이드)
-    </div>
-    <div class="status" id="status">Cloudinary에서 오늘의 사진 불러오는 중…</div>
+    <div class="hint">좌우 드래그 · 클릭하면 확대</div>
+    <div class="status" id="status">사진 불러오는 중...</div>
     <div class="stage" id="stage"></div>
   </div>
 
-  <!-- 확대 뷰어 -->
-  <div class="viewer" id="viewer">
-    <div class="viewer-bg" id="viewerBg"></div>
-    <div class="viewer-container">
-      <img class="viewer-image" id="viewerImage" />
-      <div class="viewer-info" id="viewerInfo">
-        <div class="viewer-date" id="viewerDate"></div>
-        <div class="viewer-location" id="viewerLocation"></div>
-        <div class="viewer-camera" id="viewerCamera"></div>
-      </div>
-    </div>
-    <div class="viewer-close" id="viewerClose">✕ CLOSE</div>
-  </div>
+<script>
+  const stage = document.getElementById("stage");
+  const statusEl = document.getElementById("status");
 
-  <script>
-    const stage = document.getElementById("stage");
-    const statusEl = document.getElementById("status");
-    const viewer = document.getElementById("viewer");
-    const viewerBg = document.getElementById("viewerBg");
-    const viewerImage = document.getElementById("viewerImage");
-    const viewerDate = document.getElementById("viewerDate");
-    const viewerLocation = document.getElementById("viewerLocation");
-    const viewerCamera = document.getElementById("viewerCamera");
-    const viewerClose = document.getElementById("viewerClose");
+  let radiusX, radiusY, centerX, centerY;
 
-    let radiusX, radiusY, centerX, centerY, isMobile;
+  function updateLayout() {
+    const rect = stage.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
 
-    function updateLayout() {
-      const rect = stage.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
+    radiusX = w * 0.55;
+    radiusY = h * 0.36;
+    centerX = w / 2;
+    centerY = h * 0.90;
+  }
 
-      isMobile = window.innerWidth < 768;
+  // ✅ 로딩용 샘플 (즉시 뜨는 5장)
+  const PLACEHOLDERS = [
+    "https://picsum.photos/id/1011/900/1200",
+    "https://picsum.photos/id/1025/900/1200",
+    "https://picsum.photos/id/1043/900/1200",
+    "https://picsum.photos/id/1050/900/1200",
+    "https://picsum.photos/id/1062/900/1200",
+    "https://picsum.photos/id/1074/900/1200",
+    "https://picsum.photos/id/1084/900/1200",
+    "https://picsum.photos/id/1080/900/1200"
+  ];
 
-      if (isMobile) {
-        radiusX = w * 0.78;
-        radiusY = h * 0.32;
-        centerX = w / 2;
-        centerY = h * 0.95;
-      } else {
-        radiusX = w * 0.55;
-        radiusY = h * 0.36;
-        centerX = w / 2;
-        centerY = h * 1.05;
-      }
-    }
+  function shuffle(arr) {
+    return [...arr].sort(() => Math.random() - 0.5);
+  }
 
-    /* ========= 1. Cloudinary API 호출 ========= */
+  // ✅ 핵심: 0초 로딩 + 매번 랜덤 + 5장만
+  async function loadItems() {
+    statusEl.textContent = "사진 불러오는 중...";
+    const fastFive = shuffle(PLACEHOLDERS).slice(0, 5).map((src, i) => ({
+      image: src,
+      name: `loading ${i + 1}`
+    }));
 
-    async function loadItems() {
-      try {
-        statusEl.textContent = "Cloudinary API 호출 중...";
-        
-        const res = await fetch("/.netlify/functions/cloudinary-random");
-        
-        console.log("API Response Status:", res.status);
-        
-        if (!res.ok) {
-          throw new Error(`API 오류: ${res.status}`);
+    return fastFive;
+  }
+
+  function initOrbit(items) {
+    updateLayout();
+    window.addEventListener("resize", updateLayout);
+
+    stage.innerHTML = "";
+
+    const cards = [];
+    const N = items.length;
+    const SLOT_ANGLE = 0.33;
+
+    items.forEach((item, i) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.style.backgroundImage = `url(${item.image})`;
+
+      const label = document.createElement("div");
+      label.className = "label";
+      label.textContent = item.name;
+      card.appendChild(label);
+
+      stage.appendChild(card);
+
+      const offsetIndex = i - (N - 1) / 2;
+      cards.push({
+        el: card,
+        offsetAngle: offsetIndex * SLOT_ANGLE
+      });
+    });
+
+    let scrollAngle = 0;
+    let velocity = 0;
+    const friction = 0.94;
+    let dragging = false;
+    let lastX = 0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      scrollAngle += velocity;
+      velocity *= friction;
+
+      cards.forEach((card) => {
+        const a = card.offsetAngle + scrollAngle;
+        const front = Math.cos(a) > 0;
+
+        if (!front) {
+          card.el.classList.add("hidden");
+          return;
+        } else {
+          card.el.classList.remove("hidden");
         }
 
-        const data = await res.json();
-        console.log("API Response Data:", data);
+        const x = centerX + Math.sin(a) * radiusX;
+        const y = centerY - Math.cos(a) * radiusY;
+        const depth = (Math.cos(a) + 1) / 2;
+        const scale = 0.72 + depth * 0.55;
+        const tilt = -Math.sin(a) * 22;
 
-        if (data.items && Array.isArray(data.items) && data.items.length > 0) {
-          statusEl.textContent = `✓ ${data.items.length}장의 사진을 불러왔습니다`;
-          setTimeout(() => statusEl.style.display = 'none', 3000);
-          return data.items;
-        }
-
-        throw new Error("이미지 데이터 없음");
-
-      } catch (err) {
-        console.error("Load error:", err);
-        statusEl.textContent = "⚠ Cloudinary 연결 실패 → 샘플 이미지로 표시";
-        
-        // Fallback 샘플
-        const placeholders = [
-          "https://picsum.photos/id/1011/900/1200",
-          "https://picsum.photos/id/1025/900/1200",
-          "https://picsum.photos/id/1043/900/1200",
-          "https://picsum.photos/id/1050/900/1200",
-          "https://picsum.photos/id/1062/900/1200",
-          "https://picsum.photos/id/1074/900/1200",
-          "https://picsum.photos/id/1084/900/1200",
-          "https://picsum.photos/id/1080/900/1200",
-          "https://picsum.photos/id/1039/900/1200"
-        ];
-
-        return placeholders.map((src, i) => ({
-          image: src,
-          photoDate: "2024.01.15 14:30",
-          uploadDate: "2024.01.15",
-          location: "샘플 위치",
-          camera: "Sample Camera"
-        }));
-      }
-    }
-
-    /* ========= 2. Orbit 캐러셀 초기화 ========= */
-
-    function initOrbit(items) {
-      updateLayout();
-      window.addEventListener("resize", updateLayout);
-
-      const cards = [];
-      const N = items.length;
-      const SLOT_ANGLE = 0.33;
-
-      items.forEach((item, i) => {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.style.backgroundImage = `url(${item.image})`;
-
-        const info = document.createElement("div");
-        info.className = "card-info";
-        info.innerHTML = `
-          <div class="card-info-date">${item.photoDate || item.uploadDate || ''}</div>
-          <div class="card-info-detail">${item.location || ''}</div>
+        card.el.style.transform = `
+          translate3d(${x - 130}px, ${y - 180}px, 0)
+          scale(${scale})
+          rotateY(${tilt}deg)
         `;
-        card.appendChild(info);
 
-        stage.appendChild(card);
-
-        const offsetIndex = i - (N - 1) / 2;
-        cards.push({
-          el: card,
-          offsetAngle: offsetIndex * SLOT_ANGLE,
-          item
-        });
-
-        card.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openViewer(item);
-        });
-      });
-
-      let scrollAngle = 0;
-      let velocity = 0;
-      const friction = 0.94;
-      let dragging = false;
-      let lastX = 0;
-
-      function animate() {
-        requestAnimationFrame(animate);
-
-        scrollAngle += velocity;
-        velocity *= friction;
-
-        cards.forEach((card) => {
-          const a = card.offsetAngle + scrollAngle;
-
-          const front = Math.cos(a) > 0;
-          if (!front) {
-            card.el.classList.add("hidden");
-            return;
-          } else {
-            card.el.classList.remove("hidden");
-          }
-
-          const x = centerX + Math.sin(a) * radiusX;
-          const y = centerY - Math.cos(a) * radiusY;
-
-          const depth = (Math.cos(a) + 1) / 2;
-          const scaleBase = isMobile ? 0.8 : 0.72;
-          const scale = scaleBase + depth * 0.55;
-          const tilt = -Math.sin(a) * 22;
-
-          card.el.style.transform = `
-            translate3d(${x - (isMobile ? 90 : 130)}px, ${y - (isMobile ? 125 : 180)}px, 0)
-            scale(${scale})
-            rotateZ(${-Math.sin(a) * 6}deg)
-            rotateY(${tilt}deg)
-          `;
-          card.el.style.zIndex = 100 + Math.floor(depth * 100);
-          card.el.style.opacity = 0.18 + depth * 0.82;
-        });
-      }
-      animate();
-
-      stage.addEventListener("pointerdown", (e) => {
-        dragging = true;
-        lastX = e.clientX;
-      });
-
-      window.addEventListener("pointermove", (e) => {
-        if (!dragging) return;
-        const dx = e.clientX - lastX;
-        lastX = e.clientX;
-        velocity = dx * (isMobile ? 0.004 : 0.002);
-      });
-
-      window.addEventListener("pointerup", () => {
-        dragging = false;
+        card.el.style.zIndex = 100 + depth * 100;
+        card.el.style.opacity = 0.2 + depth * 0.8;
       });
     }
 
-    /* ========= 3. 뷰어 (카드 뽑는 효과 + 이미지 클릭으로 닫기) ========= */
+    animate();
 
-    function openViewer(item) {
-      viewerBg.style.backgroundImage = `url(${item.image})`;
-      viewerImage.src = item.image;
-      
-      viewerDate.textContent = item.photoDate 
-        ? `📸 촬영: ${item.photoDate}` 
-        : `📤 업로드: ${item.uploadDate || ''}`;
-      
-      viewerLocation.textContent = item.location 
-        ? `📍 장소: ${item.location}` 
-        : '';
-      
-      viewerCamera.textContent = item.camera 
-        ? `📷 카메라: ${item.camera}` 
-        : '';
-
-      viewer.classList.add("active");
-    }
-
-    function closeViewer() {
-      viewer.classList.remove("active");
-    }
-
-    // 배경 클릭으로 닫기
-    viewer.addEventListener("click", (e) => {
-      if (e.target === viewer || e.target === viewerBg) {
-        closeViewer();
-      }
-    });
-    
-    // ✅ 이미지 클릭으로도 닫기
-    viewerImage.addEventListener("click", (e) => {
-      e.stopPropagation();
-      closeViewer();
-    });
-    
-    // 닫기 버튼
-    viewerClose.addEventListener("click", (e) => {
-      e.stopPropagation();
-      closeViewer();
+    stage.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      lastX = e.clientX;
     });
 
-    // ESC 키로 닫기
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeViewer();
+    window.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - lastX;
+      lastX = e.clientX;
+      velocity = dx * 0.002;
     });
 
-    /* ========= 4. 시작 ========= */
+    window.addEventListener("pointerup", () => {
+      dragging = false;
+    });
+  }
 
-    (async () => {
-      const items = await loadItems();
-      initOrbit(items);
-    })();
-  </script>
+  (async () => {
+    const items = await loadItems();
+    initOrbit(items);
+  })();
+</script>
 </body>
 </html>
